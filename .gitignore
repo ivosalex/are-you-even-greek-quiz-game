@@ -2,8 +2,16 @@
 
 # dependencies
 /node_modules
+agent/node_modules
+token-server/node_modules
 /.pnp
 .pnp.js
+
+# build output
+agent/dist
+
+# secrets
+.env
 
 # testing
 /coverage

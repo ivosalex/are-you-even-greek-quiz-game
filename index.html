@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Greek Quiz Voice Game</title>
+    <script src="https://unpkg.com/livekit-client/dist/livekit.min.js"></script>
+</head>
+<body>
+    <h1>Greek Quiz Voice Game</h1>
+    <div id="status">Disconnected</div>
+    <button id="joinBtn">Join Voice Room</button>
+
+    <div id="quizArea" style="display:none;">
+        <p id="question"></p>
+        <input id="answerInput" type="text" placeholder="Type your answer or speak" />
+        <button id="submitAnswerBtn">Submit Answer</button>
+        <p id="feedback"></p>
+        <p id="score"></p>
+    </div>
+
+    <script>
+        const { connect } = LiveKit;
+        let room;
+
+        const joinBtn = document.getElementById('joinBtn');
+        const status = document.getElementById('status');
+        const quizArea = document.getElementById('quizArea');
+        const questionElem = document.getElementById('question');
+        const answerInput = document.getElementById('answerInput');
+        const submitAnswerBtn = document.getElementById('submitAnswerBtn');
+        const feedbackElem = document.getElementById('feedback');
+        const scoreElem = document.getElementById('score');
+
+        const questions = [
+            { question: "Who was the king of the Greek gods?", answer: "zeus" },
+            { question: "What is the name of the epic poem attributed to Homer that tells the story of the Trojan War?", answer: "iliad" },
+            { question: "Which city-state was known for its military discipline and society?", answer: "sparta" },
+            { question: "Who is the goddess of wisdom in Greek mythology?", answer: "athena" },
+            { question: "What war was fought between Athens and Sparta?", answer: "peloponnesian war" }
+        ];
+
+        let currentQuestionIndex = 0;
+        let score = 0;
+
+        function playQuestionAudio(text) {
+            const utterance = new SpeechSynthesisUtterance(text);
+            speechSynthesis.speak(utterance);
+        }
+
+        joinBtn.onclick = async () => {
+            const token = prompt('Enter your LiveKit access token');
+            if (!token) return;
+
+            room = await connect(
+                'wss://your.livekit.server',
+                token,
+                { audio: true, video: false }
+            );
+
+            status.textContent = 'Connected';
+            joinBtn.style.display = 'none';
+            quizArea.style.display = 'block';
+            questionElem.textContent = questions[currentQuestionIndex].question;
+            playQuestionAudio(questions[currentQuestionIndex].question);
+        };
+
+        submitAnswerBtn.onclick = () => {
+            const userAnswer = answerInput.value.trim().toLowerCase();
+            if (!userAnswer) return;
+
+            if (userAnswer === questions[currentQuestionIndex].answer) {
+                feedbackElem.textContent = 'Correct!';
+                score++;
+            } else {
+                feedbackElem.textContent = `Wrong. The correct answer is ${questions[currentQuestionIndex].answer}.`;
+            }
+
+            scoreElem.textContent = `Score: ${score}`;
+            answerInput.value = '';
+            currentQuestionIndex++;
+
+            if (currentQuestionIndex >= questions.length) {
+                questionElem.textContent = 'Quiz complete!';
+                submitAnswerBtn.disabled = true;
+                answerInput.disabled = true;
+            } else {
+                questionElem.textContent = questions[currentQuestionIndex].question;
+                playQuestionAudio(questions[currentQuestionIndex].question);
+            }
+        };
+
+        questionElem.textContent = 'Join voice room to start the quiz';
+    </script>
+</body>
+</html>
