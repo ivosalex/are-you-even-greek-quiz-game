@@ -1,58 +1,56 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
   <!-- Background -->
   <circle cx="50" cy="50" r="50" fill="#06050f"/>
-  <!-- Gold ring border -->
-  <circle cx="50" cy="50" r="46" fill="none" stroke="#c9a84c" stroke-width="2"/>
+  <!-- Gold ring -->
+  <circle cx="50" cy="50" r="46" fill="none" stroke="#c9a84c" stroke-width="2.5"/>
 
-  <!-- Body (compact coin-style oval) -->
-  <ellipse cx="50" cy="64" rx="16" ry="18" fill="#c9a84c"/>
+  <!-- Body — chubby, round -->
+  <ellipse cx="50" cy="68" rx="19" ry="17" fill="#c9a84c"/>
 
-  <!-- Wing feather lines (geometric engraved lines, like on coin) -->
-  <line x1="35" y1="57" x2="45" y2="55" stroke="#06050f" stroke-width="1.5" stroke-linecap="round"/>
-  <line x1="34" y1="63" x2="44" y2="61" stroke="#06050f" stroke-width="1.5" stroke-linecap="round"/>
-  <line x1="34" y1="69" x2="44" y2="67" stroke="#06050f" stroke-width="1.5" stroke-linecap="round"/>
-  <line x1="35" y1="75" x2="45" y2="73" stroke="#06050f" stroke-width="1.5" stroke-linecap="round"/>
-  <line x1="65" y1="57" x2="55" y2="55" stroke="#06050f" stroke-width="1.5" stroke-linecap="round"/>
-  <line x1="66" y1="63" x2="56" y2="61" stroke="#06050f" stroke-width="1.5" stroke-linecap="round"/>
-  <line x1="66" y1="69" x2="56" y2="67" stroke="#06050f" stroke-width="1.5" stroke-linecap="round"/>
-  <line x1="65" y1="75" x2="55" y2="73" stroke="#06050f" stroke-width="1.5" stroke-linecap="round"/>
+  <!-- Chest feather arcs (coin-engraving style) -->
+  <path d="M35,62 Q50,57 65,62" fill="none" stroke="#06050f" stroke-width="2" stroke-linecap="round"/>
+  <path d="M33,70 Q50,65 67,70" fill="none" stroke="#06050f" stroke-width="2" stroke-linecap="round"/>
+  <path d="M34,78 Q50,73 66,78" fill="none" stroke="#06050f" stroke-width="2" stroke-linecap="round"/>
 
-  <!-- Head (large round, coin-style) -->
-  <circle cx="50" cy="33" r="19" fill="#c9a84c"/>
+  <!-- Head — big and round -->
+  <circle cx="50" cy="31" r="22" fill="#c9a84c"/>
 
-  <!-- Ear tufts (sharp angular points, like coin) -->
-  <polygon points="38,19 34,8 44,17" fill="#c9a84c"/>
-  <polygon points="62,19 66,8 56,17" fill="#c9a84c"/>
+  <!-- Ear tufts — bold, outward-leaning -->
+  <polygon points="37,18 35,7 44,15" fill="#c9a84c"/>
+  <polygon points="63,18 65,7 56,15" fill="#c9a84c"/>
 
-  <!-- Eyes: large coin-style (dark ring → gold iris → dark pupil) -->
-  <circle cx="41" cy="32" r="8.5" fill="#06050f"/>
-  <circle cx="41" cy="32" r="6"   fill="#c9a84c"/>
-  <circle cx="41" cy="32" r="3"   fill="#06050f"/>
+  <!-- Left eye (huge, coin-inspired) -->
+  <circle cx="39" cy="30" r="11.5" fill="#06050f"/>
+  <circle cx="39" cy="30" r="8"    fill="#c9a84c"/>
+  <circle cx="39" cy="30" r="4.5"  fill="#06050f"/>
+  <!-- shine -->
+  <circle cx="36"  cy="27" r="2"   fill="white" opacity="0.85"/>
 
-  <circle cx="59" cy="32" r="8.5" fill="#06050f"/>
-  <circle cx="59" cy="32" r="6"   fill="#c9a84c"/>
-  <circle cx="59" cy="32" r="3"   fill="#06050f"/>
+  <!-- Right eye -->
+  <circle cx="61" cy="30" r="11.5" fill="#06050f"/>
+  <circle cx="61" cy="30" r="8"    fill="#c9a84c"/>
+  <circle cx="61" cy="30" r="4.5"  fill="#06050f"/>
+  <!-- shine -->
+  <circle cx="58"  cy="27" r="2"   fill="white" opacity="0.85"/>
 
-  <!-- Beak (angular downward triangle, coin-style) -->
-  <polygon points="46,42 50,50 54,42" fill="#8a6a1a"/>
+  <!-- Beak — small cute downward hook -->
+  <path d="M47,41 Q50,48 53,41 Q50,38 47,41 Z" fill="#8a6a1a"/>
 
-  <!-- Ground line (coin feature — owl stands on a line) -->
-  <line x1="28" y1="86" x2="72" y2="86" stroke="#c9a84c" stroke-width="1.5" stroke-linecap="round"/>
+  <!-- Left foot -->
+  <line x1="42" y1="83" x2="37" y2="91" stroke="#c9a84c" stroke-width="2.5" stroke-linecap="round"/>
+  <line x1="42" y1="83" x2="42" y2="92" stroke="#c9a84c" stroke-width="2.5" stroke-linecap="round"/>
+  <line x1="42" y1="83" x2="47" y2="91" stroke="#c9a84c" stroke-width="2.5" stroke-linecap="round"/>
 
-  <!-- Legs + talons -->
-  <line x1="42" y1="82" x2="37" y2="86" stroke="#c9a84c" stroke-width="2" stroke-linecap="round"/>
-  <line x1="42" y1="82" x2="42" y2="86" stroke="#c9a84c" stroke-width="2" stroke-linecap="round"/>
-  <line x1="42" y1="82" x2="47" y2="86" stroke="#c9a84c" stroke-width="2" stroke-linecap="round"/>
-  <line x1="58" y1="82" x2="53" y2="86" stroke="#c9a84c" stroke-width="2" stroke-linecap="round"/>
-  <line x1="58" y1="82" x2="58" y2="86" stroke="#c9a84c" stroke-width="2" stroke-linecap="round"/>
-  <line x1="58" y1="82" x2="63" y2="86" stroke="#c9a84c" stroke-width="2" stroke-linecap="round"/>
+  <!-- Right foot -->
+  <line x1="58" y1="83" x2="53" y2="91" stroke="#c9a84c" stroke-width="2.5" stroke-linecap="round"/>
+  <line x1="58" y1="83" x2="58" y2="92" stroke="#c9a84c" stroke-width="2.5" stroke-linecap="round"/>
+  <line x1="58" y1="83" x2="63" y2="91" stroke="#c9a84c" stroke-width="2.5" stroke-linecap="round"/>
 
-  <!-- Olive branch (right side, coin detail) -->
-  <path d="M70,56 Q74,50 76,44" stroke="#c9a84c" stroke-width="1.5" fill="none" stroke-linecap="round"/>
-  <ellipse cx="71" cy="54" rx="3" ry="1.8" fill="#c9a84c" transform="rotate(-30 71 54)"/>
-  <ellipse cx="73" cy="50" rx="3" ry="1.8" fill="#c9a84c" transform="rotate(-45 73 50)"/>
-  <ellipse cx="75" cy="46" rx="3" ry="1.8" fill="#c9a84c" transform="rotate(-60 75 46)"/>
+  <!-- Olive sprig (coin nod, top-right) -->
+  <path d="M68,18 L73,12" stroke="#c9a84c" stroke-width="1.5" stroke-linecap="round"/>
+  <ellipse cx="69.5" cy="16" rx="2.8" ry="1.5" fill="#c9a84c" transform="rotate(-40 69.5 16)"/>
+  <ellipse cx="72.5" cy="13" rx="2.8" ry="1.5" fill="#c9a84c" transform="rotate(-55 72.5 13)"/>
 
-  <!-- Crescent moon (upper right, coin detail) -->
-  <path d="M72,14 Q67,18 72,22 Q78,20 78,18 Q78,16 72,14 Z" fill="#c9a84c"/>
+  <!-- Crescent moon (top-left, coin nod) -->
+  <path d="M28,14 Q24,18 28,22 Q34,20 34,18 Q34,16 28,14 Z" fill="#c9a84c"/>
 </svg>
