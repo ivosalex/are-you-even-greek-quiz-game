@@ -2,70 +2,202 @@ import { useState, useEffect, useRef } from 'react';
 import { Room, RoomEvent, Track } from 'livekit-client';
 import './App.css';
 
-const TOKEN_SERVER = 'http://localhost:3001';
-const ROOM_NAME = 'greek-quiz-room';
+// In development: local token server. In production (Vercel): /api/token
+const TOKEN_URL =
+  process.env.REACT_APP_TOKEN_URL || 'http://localhost:3001/token';
 
-const AGENT_STATE_LABELS = {
-  initializing: 'Getting ready...',
-  listening: 'Listening — speak your answer now',
-  thinking: 'Thinking...',
-  speaking: 'Quiz master is speaking',
+const STATE_LABELS = {
+  initializing: 'THE ORACLE AWAKENS',
+  listening:    'SPEAK YOUR ANSWER',
+  thinking:     'THE GODDESS PONDERS',
+  speaking:     'ATHENA SPEAKS',
 };
 
+// ── Athena SVG Avatar ────────────────────────────────────────────────────────
+function AthenaAvatar({ state }) {
+  return (
+    <div className={`avatar-wrapper ${state || ''}`}>
+      <div className="ring ring-1" />
+      <div className="ring ring-2" />
+      <div className="ring ring-3" />
+      <svg
+        className="avatar-svg"
+        viewBox="0 0 200 200"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        <defs>
+          <radialGradient id="bgGrad" cx="50%" cy="40%" r="60%">
+            <stop offset="0%" stopColor="#1a1440" />
+            <stop offset="100%" stopColor="#06050f" />
+          </radialGradient>
+          <radialGradient id="skinGrad" cx="50%" cy="35%" r="60%">
+            <stop offset="0%" stopColor="#e8d5b0" />
+            <stop offset="100%" stopColor="#c8a878" />
+          </radialGradient>
+          <filter id="softGlow">
+            <feGaussianBlur stdDeviation="2" result="blur" />
+            <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+          </filter>
+        </defs>
+
+        {/* Background */}
+        <circle cx="100" cy="100" r="100" fill="url(#bgGrad)" />
+
+        {/* Outer gold ring */}
+        <circle cx="100" cy="100" r="96" fill="none" stroke="#c9a84c" strokeWidth="2.5" />
+        {/* Inner decorative ring */}
+        <circle cx="100" cy="100" r="91" fill="none" stroke="#c9a84c" strokeWidth="0.5" strokeDasharray="3 4" />
+
+        {/* ── Hair (behind face) ── */}
+        <path
+          d="M 58 95 Q 55 65 68 48 Q 80 32 100 28 Q 120 32 132 48 Q 145 65 142 95
+             Q 135 85 128 80 Q 118 68 100 65 Q 82 68 72 80 Q 65 85 58 95 Z"
+          fill="#3a2810"
+        />
+        {/* Hair flowing sides */}
+        <path d="M 58 95 Q 52 110 55 130 Q 62 125 68 115 Q 65 105 65 95 Z" fill="#3a2810" />
+        <path d="M 142 95 Q 148 110 145 130 Q 138 125 132 115 Q 135 105 135 95 Z" fill="#3a2810" />
+
+        {/* ── Stephane / Crown (gold headband) ── */}
+        <path
+          d="M 63 82 Q 65 76 100 70 Q 135 76 137 82 Q 120 78 100 76 Q 80 78 63 82 Z"
+          fill="#c9a84c"
+        />
+        {/* Crown jewels */}
+        <ellipse cx="100" cy="73" rx="4" ry="5" fill="#e8d070" filter="url(#softGlow)" />
+        <ellipse cx="83"  cy="76" rx="3" ry="3.5" fill="#c9a84c" />
+        <ellipse cx="117" cy="76" rx="3" ry="3.5" fill="#c9a84c" />
+        <ellipse cx="68"  cy="80" rx="2.5" ry="3" fill="#b89840" />
+        <ellipse cx="132" cy="80" rx="2.5" ry="3" fill="#b89840" />
+
+        {/* Olive leaves on crown */}
+        <g opacity="0.85">
+          <ellipse cx="74" cy="77" rx="6" ry="3" fill="#4a7a38" transform="rotate(-20 74 77)" />
+          <ellipse cx="86" cy="73" rx="6" ry="2.5" fill="#5a8a48" transform="rotate(-10 86 73)" />
+          <ellipse cx="114" cy="73" rx="6" ry="2.5" fill="#5a8a48" transform="rotate(10 114 73)" />
+          <ellipse cx="126" cy="77" rx="6" ry="3" fill="#4a7a38" transform="rotate(20 126 77)" />
+        </g>
+
+        {/* ── Face ── */}
+        <ellipse cx="100" cy="110" rx="40" ry="46" fill="url(#skinGrad)" />
+        {/* Forehead highlight */}
+        <ellipse cx="100" cy="88" rx="22" ry="10" fill="#f0e0c0" opacity="0.35" />
+
+        {/* ── Eyes ── */}
+        {/* Left eye */}
+        <path d="M 76 100 Q 84 93 93 100 Q 84 107 76 100 Z" fill="white" />
+        <ellipse cx="84" cy="100" rx="5.5" ry="5" fill="#2a4a80" />
+        <ellipse cx="84" cy="100" rx="3.5" ry="3.5" fill="#0c1a30" />
+        <circle cx="85.5" cy="98" r="1.2" fill="white" opacity="0.9" />
+        {/* Left eyebrow */}
+        <path d="M 73 92 Q 84 87 95 90" stroke="#3a2010" strokeWidth="2" fill="none" strokeLinecap="round" />
+
+        {/* Right eye */}
+        <path d="M 107 100 Q 116 93 124 100 Q 116 107 107 100 Z" fill="white" />
+        <ellipse cx="116" cy="100" rx="5.5" ry="5" fill="#2a4a80" />
+        <ellipse cx="116" cy="100" rx="3.5" ry="3.5" fill="#0c1a30" />
+        <circle cx="117.5" cy="98" r="1.2" fill="white" opacity="0.9" />
+        {/* Right eyebrow */}
+        <path d="M 105 90 Q 116 87 127 92" stroke="#3a2010" strokeWidth="2" fill="none" strokeLinecap="round" />
+
+        {/* ── Nose ── */}
+        <path d="M 100 106 L 95 118 Q 100 121 105 118 Z" fill="none" stroke="#c09878" strokeWidth="1.2" strokeLinecap="round" />
+
+        {/* ── Lips ── */}
+        <path d="M 88 126 Q 100 133 112 126" stroke="#c08878" strokeWidth="2.2" fill="none" strokeLinecap="round" />
+        <path d="M 91 126 Q 100 129 109 126" fill="#d09888" />
+
+        {/* ── Neck ── */}
+        <rect x="90" y="150" width="20" height="12" rx="4" fill="#d8c098" />
+
+        {/* ── Robes / Shoulders ── */}
+        <path d="M 52 185 Q 60 162 90 155 L 90 162 Q 68 168 58 188 Z" fill="#6a5030" />
+        <path d="M 148 185 Q 140 162 110 155 L 110 162 Q 132 168 142 188 Z" fill="#6a5030" />
+        <path d="M 58 188 L 142 188 Q 138 168 110 162 L 90 162 Q 62 168 58 188 Z" fill="#5a4025" />
+        {/* Robe gold trim */}
+        <path d="M 58 188 L 142 188" stroke="#c9a84c" strokeWidth="1.5" opacity="0.6" />
+        <path d="M 90 162 L 84 188 M 100 162 L 100 188 M 110 162 L 116 188"
+              stroke="#c9a84c" strokeWidth="0.6" opacity="0.4" />
+
+        {/* ── Owl of Athena (small, bottom right) ── */}
+        <g transform="translate(138, 148) scale(0.55)" opacity="0.75">
+          <ellipse cx="20" cy="22" rx="14" ry="18" fill="#4a3a20" />
+          <circle cx="20" cy="10" r="12" fill="#4a3a20" />
+          <ellipse cx="20" cy="12" rx="9" ry="8" fill="#6a5030" />
+          <circle cx="15" cy="10" r="4.5" fill="#c9a84c" />
+          <circle cx="25" cy="10" r="4.5" fill="#c9a84c" />
+          <circle cx="15" cy="10" r="2.5" fill="#1a0a00" />
+          <circle cx="25" cy="10" r="2.5" fill="#1a0a00" />
+          <circle cx="15.8" cy="9" r="0.8" fill="white" />
+          <circle cx="25.8" cy="9" r="0.8" fill="white" />
+          <path d="M 17 16 L 20 20 L 23 16 Z" fill="#c9a84c" />
+        </g>
+      </svg>
+    </div>
+  );
+}
+
+// ── Main App ─────────────────────────────────────────────────────────────────
 export default function App() {
-  // phase: 'idle' | 'connecting' | 'active' | 'error'
-  const [phase, setPhase] = useState('idle');
+  const [phase, setPhase] = useState('idle'); // idle | connecting | active | error
   const [agentState, setAgentState] = useState(null);
   const [errorMsg, setErrorMsg] = useState('');
+  const [typedAnswer, setTypedAnswer] = useState('');
+  const [transcript, setTranscript] = useState('');
+  const [difficulty, setDifficulty] = useState('medium');
   const roomRef = useRef(null);
+  const inputRef = useRef(null);
 
   async function startQuiz() {
     setPhase('connecting');
     setErrorMsg('');
-
     try {
       const res = await fetch(
-        `${TOKEN_SERVER}/token?room=${ROOM_NAME}&identity=user-${Date.now()}`
+        `${TOKEN_URL}?identity=mortal-${Date.now()}&difficulty=${difficulty}`
       );
-      if (!res.ok) throw new Error('Token server returned an error — is it running on port 3001?');
+      if (!res.ok) throw new Error('Token server not responding — is it running on port 3001?');
       const { token, url } = await res.json();
 
       const room = new Room();
       roomRef.current = room;
 
-      // Track agent state changes via participant attributes
-      room.on(RoomEvent.ParticipantAttributesChanged, (changedAttrs) => {
-        if (changedAttrs['lk.agent.state']) {
-          setAgentState(changedAttrs['lk.agent.state']);
-        }
+      room.on(RoomEvent.ParticipantAttributesChanged, (attrs) => {
+        if (attrs['lk.agent.state']) setAgentState(attrs['lk.agent.state']);
       });
-
-      // Check initial agent state when a remote participant connects
-      room.on(RoomEvent.ParticipantConnected, (participant) => {
-        const state = participant.attributes?.['lk.agent.state'];
-        if (state) setAgentState(state);
+      room.on(RoomEvent.ParticipantConnected, (p) => {
+        const s = p.attributes?.['lk.agent.state'];
+        if (s) setAgentState(s);
       });
-
-      // Auto-play agent audio
       room.on(RoomEvent.TrackSubscribed, (track) => {
         if (track.kind === Track.Kind.Audio) {
           const el = track.attach();
+          el.autoplay = true;
+          el.muted = false;
           document.body.appendChild(el);
+          el.play().catch(() => {});
         }
       });
-
       room.on(RoomEvent.TrackUnsubscribed, (track) => {
-        const elements = track.detach();
-        elements.forEach((el) => el.remove());
+        track.detach().forEach((el) => el.remove());
       });
-
+      room.on(RoomEvent.TranscriptionReceived, (segments, participant) => {
+        if (!participant || participant.isLocal) return;
+        const text = segments.map((s) => s.text).join('');
+        if (text) setTranscript(text);
+      });
       room.on(RoomEvent.Disconnected, () => {
         setPhase('idle');
         setAgentState(null);
+        setTranscript('');
       });
 
       await room.connect(url, token);
-      await room.localParticipant.setMicrophoneEnabled(true);
+      await room.startAudio();
+      await room.localParticipant.setMicrophoneEnabled(true, {
+        echoCancellation: true,
+        noiseSuppression: true,
+        autoGainControl: true,
+      });
       setPhase('active');
     } catch (err) {
       setErrorMsg(err.message);
@@ -75,73 +207,140 @@ export default function App() {
     }
   }
 
+  async function sendTextAnswer() {
+    const text = typedAnswer.trim();
+    if (!text || !roomRef.current) return;
+    try {
+      await roomRef.current.localParticipant.sendText(text, { topic: 'lk.chat' });
+      setTypedAnswer('');
+      inputRef.current?.focus();
+    } catch (err) {
+      console.error('Failed to send text:', err);
+    }
+  }
+
+  function handleKeyDown(e) {
+    if (e.key === 'Enter') sendTextAnswer();
+  }
+
   async function endQuiz() {
     await roomRef.current?.disconnect();
     roomRef.current = null;
     setPhase('idle');
     setAgentState(null);
+    setTranscript('');
   }
 
-  // Clean up on unmount
   useEffect(() => {
-    return () => {
-      roomRef.current?.disconnect();
-    };
+    return () => { roomRef.current?.disconnect(); };
   }, []);
 
   return (
     <div className="app">
-      <div className="card">
-        <h1 className="title">Greek History Quiz</h1>
-        <p className="subtitle">A voice quiz powered by LiveKit</p>
+      <div className="game-container">
+        {/* Header */}
+        <h1 className="title">Are You Even Greek?</h1>
+        <p className="subtitle">A Voice Trial of Ancient Wisdom</p>
 
-        {phase === 'idle' && (
-          <>
-            <p className="description">
-              Answer 5 questions about ancient Greece by speaking aloud. The
-              quiz master will ask questions and listen for your answers.
-            </p>
-            <button className="btn-primary" onClick={startQuiz}>
-              Start Quiz
-            </button>
-          </>
+        <div className="divider">
+          <span className="divider-line" />
+          <span className="divider-symbol">⚡</span>
+          <span className="divider-line" />
+        </div>
+
+        {/* Avatar — always visible */}
+        <AthenaAvatar state={agentState} />
+
+        {/* Agent state badge */}
+        {phase === 'active' && (
+          <p className={`status-badge ${agentState || ''}`}>
+            {STATE_LABELS[agentState] || 'AWAITING THE GODDESS'}
+          </p>
         )}
 
-        {phase === 'connecting' && (
-          <div className="status-row">
-            <span className="spinner" />
-            <span className="status-text">Connecting...</span>
+        {/* ── IDLE ── */}
+        {phase === 'idle' && (
+          <div className="panel">
+            <p className="description">
+              Face the goddess Athena in a trial of wisdom.<br />
+              Answer 10 questions on Greek mythology and history.<br />
+              Speak aloud or type your answers to the oracle.
+            </p>
+            <div className="difficulty-row">
+              {['easy', 'medium', 'hard'].map((d) => (
+                <button
+                  key={d}
+                  className={`btn-difficulty ${d} ${difficulty === d ? 'selected' : ''}`}
+                  onClick={() => setDifficulty(d)}
+                >
+                  {d.charAt(0).toUpperCase() + d.slice(1)}
+                </button>
+              ))}
+            </div>
+            <button className="btn-primary" onClick={startQuiz}>
+              ⚡ Enter the Oracle ⚡
+            </button>
           </div>
         )}
 
-        {phase === 'active' && (
-          <>
-            <div className={`agent-badge ${agentState || 'waiting'}`}>
-              {agentState
-                ? AGENT_STATE_LABELS[agentState] ?? agentState
-                : 'Waiting for quiz master...'}
-            </div>
-
-            <div className="mic-hint">
-              {agentState === 'listening'
-                ? 'Microphone is active'
-                : 'Wait for the quiz master to finish speaking'}
-            </div>
-
-            <button className="btn-secondary" onClick={endQuiz}>
-              End Quiz
-            </button>
-          </>
+        {/* ── CONNECTING ── */}
+        {phase === 'connecting' && (
+          <div className="panel">
+            <p className="connecting-text">
+              <span className="spinner" />
+              Summoning Athena from Olympus...
+            </p>
+          </div>
         )}
 
+        {/* ── ACTIVE ── */}
+        {phase === 'active' && (
+          <div className="panel">
+            {transcript && (
+              <div className="transcript-box">
+                <p className="transcript-text">{transcript}</p>
+              </div>
+            )}
+            <p className={`mic-hint ${agentState === 'listening' ? 'active' : ''}`}>
+              {agentState === 'listening'
+                ? '🎙 Microphone active — speak now'
+                : '🎙 Wait for Athena to finish speaking'}
+            </p>
+            <div className="input-row">
+              <input
+                ref={inputRef}
+                className="text-input"
+                type="text"
+                placeholder="Or type your answer here..."
+                value={typedAnswer}
+                onChange={(e) => setTypedAnswer(e.target.value)}
+                onKeyDown={handleKeyDown}
+              />
+              <button
+                className="btn-send"
+                onClick={sendTextAnswer}
+                disabled={!typedAnswer.trim()}
+              >
+                Submit
+              </button>
+            </div>
+            <button className="btn-secondary" onClick={endQuiz}>
+              Leave the Temple
+            </button>
+          </div>
+        )}
+
+        {/* ── ERROR ── */}
         {phase === 'error' && (
-          <>
+          <div className="panel">
             <p className="error-text">{errorMsg}</p>
             <button className="btn-primary" onClick={startQuiz}>
               Try Again
             </button>
-          </>
+          </div>
         )}
+
+        <p className="stars">✦ ✦ ✦</p>
       </div>
     </div>
   );

@@ -5,7 +5,8 @@
   "scripts": {
     "dev": "tsx main.ts dev",
     "download-files": "tsx main.ts download-files",
-    "start": "tsx main.ts start"
+    "start": "tsx main.ts start",
+    "build": "tsc"
   },
   "dependencies": {
     "@livekit/agents": "^1.0.0",
