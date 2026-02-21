@@ -1,6 +1,32 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <!-- Background -->
   <circle cx="50" cy="50" r="50" fill="#06050f"/>
-  <circle cx="50" cy="50" r="45" fill="none" stroke="#c9a84c" stroke-width="3"/>
-  <circle cx="50" cy="50" r="40" fill="none" stroke="#c9a84c" stroke-width="0.8" opacity="0.4"/>
-  <text x="50" y="69" text-anchor="middle" font-family="Georgia, 'Times New Roman', serif" font-size="52" font-weight="bold" fill="#c9a84c">Ω</text>
+  <!-- Gold border -->
+  <circle cx="50" cy="50" r="46" fill="none" stroke="#c9a84c" stroke-width="2.5"/>
+
+  <!-- Crest/plume fin -->
+  <path d="M46,13 L46,5 Q50,2 54,5 L54,13 Q52,11 50,11 Q48,11 46,13 Z" fill="#c9a84c"/>
+
+  <!-- Left half: dome + cheek guard -->
+  <path d="M50,12
+    C 33,13 18,32 18,54
+    L 18,74 Q 20,86 30,86 Q 38,87 40,80
+    L 40,43 Q 44,36 50,36 Z"
+    fill="#c9a84c"/>
+
+  <!-- Right half: dome + cheek guard -->
+  <path d="M50,12
+    C 67,13 82,32 82,54
+    L 82,74 Q 80,86 70,86 Q 62,87 60,80
+    L 60,43 Q 56,36 50,36 Z"
+    fill="#c9a84c"/>
+
+  <!-- Nose guard (gold strip in face opening) -->
+  <rect x="47" y="36" width="6" height="46" rx="2.5" fill="#c9a84c"/>
+
+  <!-- Left eye slit -->
+  <ellipse cx="29" cy="52" rx="9" ry="6" fill="#06050f"/>
+
+  <!-- Right eye slit -->
+  <ellipse cx="71" cy="52" rx="9" ry="6" fill="#06050f"/>
 </svg>
