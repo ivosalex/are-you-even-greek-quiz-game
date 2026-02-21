@@ -234,7 +234,13 @@ body {
   padding: 0.8rem 1rem;
   margin-bottom: 1rem;
   text-align: left;
+  min-height: 3.5rem;
 }
+
+.intro-actions { margin-top: 0.4rem; }
+.intro-actions .btn-primary { margin-bottom: 0.7rem; }
+.leave-intro { display: block; margin-top: 0.5rem; }
+.quiz-actions { margin-top: 0.2rem; }
 
 .transcript-text {
   font-size: 0.85rem;
@@ -287,6 +293,44 @@ body {
 }
 .btn-send:hover:not(:disabled) { background: rgba(201,168,76,0.22); border-color: var(--gold); }
 .btn-send:disabled { opacity: 0.35; cursor: not-allowed; }
+
+/* ── Push-to-talk button ────────────────────────────── */
+.btn-speak {
+  width: 100%;
+  padding: 1.1rem 2rem;
+  background: linear-gradient(135deg, rgba(106,176,255,0.12), rgba(106,176,255,0.06));
+  border: 1px solid rgba(106,176,255,0.4);
+  color: #b0d8ff;
+  font-family: 'Cinzel', serif;
+  font-size: 0.85rem;
+  cursor: pointer;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  transition: all 0.3s;
+  margin-bottom: 0.9rem;
+}
+.btn-speak:hover:not(:disabled) {
+  background: linear-gradient(135deg, rgba(106,176,255,0.22), rgba(106,176,255,0.12));
+  border-color: var(--blue);
+  box-shadow: 0 0 20px rgba(106,176,255,0.2);
+}
+.btn-speak.recording {
+  background: linear-gradient(135deg, rgba(200,80,80,0.2), rgba(200,80,80,0.1));
+  border-color: #e07070;
+  color: #ffb0b0;
+  animation: recordPulse 1.2s ease-in-out infinite alternate;
+}
+.btn-speak:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  border-color: rgba(201,168,76,0.2);
+  color: var(--text-dim);
+  background: linear-gradient(135deg, rgba(201,168,76,0.06), rgba(201,168,76,0.03));
+}
+@keyframes recordPulse {
+  from { box-shadow: 0 0 8px rgba(200,80,80,0.3); }
+  to   { box-shadow: 0 0 22px rgba(200,80,80,0.7); }
+}
 
 /* ── Spinner ────────────────────────────────────────── */
 .spinner {

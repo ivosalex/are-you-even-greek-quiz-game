@@ -1,5 +1,4 @@
 import {
-  AutoSubscribe,
   type JobContext,
   type JobProcess,
   WorkerOptions,
@@ -24,46 +23,71 @@ export default defineAgent({
   },
 
   entry: async (ctx: JobContext) => {
-    console.log('Job received — connecting to room...');
-    await ctx.connect(undefined, AutoSubscribe.AUDIO_ONLY);
-    console.log('Connected. Waiting for participant...');
-    await ctx.waitForParticipant();
-    console.log('Participant joined. Starting session...');
+    // ctx.job.room.name is populated from the job dispatch before ctx.connect()
+    const roomName = ctx.job.room?.name ?? ctx.room.name ?? '';
+    console.log(`\n=== JOB RECEIVED === room: ${roomName}`);
 
     const vad = ctx.proc.userData.vad as silero.VAD;
 
-    // Read difficulty from dispatch metadata
+    // Room name format: greek-quiz-{difficulty}-{identity}
+    // e.g. "greek-quiz-easy-mortal-1708521234" → parts[2] = "easy"
     let difficulty: Difficulty = 'medium';
-    try {
-      const meta = ctx.job.metadata ? JSON.parse(ctx.job.metadata) as { difficulty?: string } : {};
-      if (meta.difficulty === 'easy' || meta.difficulty === 'hard') {
-        difficulty = meta.difficulty;
-      }
-    } catch { /* keep default */ }
+    const d = roomName.split('-')[2];
+    if (d === 'easy' || d === 'medium' || d === 'hard') difficulty = d as Difficulty;
     console.log(`Difficulty: ${difficulty}`);
 
     const session = new voice.AgentSession({
       vad,
-      stt: new inference.STT({ model: 'deepgram/nova-3', language: 'multi' }),
+      stt: new inference.STT({ model: 'deepgram/nova-3', language: 'en' }),
       llm: new inference.LLM({ model: 'openai/gpt-4.1-mini' }),
-      // ElevenLabs Alice — British female voice with classical gravitas
       tts: new inference.TTS({
         model: 'elevenlabs/eleven_turbo_v2_5',
         voice: 'Xb7hH8MSUJpSbSDYk0k2',
       }),
     });
 
-    await session.start({
-      agent: createQuizAgent(difficulty),
-      room: ctx.room,
+    // Log all errors so nothing is silently swallowed
+    session.on('error', (ev: any) => {
+      const src = ev.source?.constructor?.name ?? String(ev.source);
+      console.error(`SESSION ERROR [${src}]:`, ev.error);
     });
 
-    console.log('Session started. Generating greeting...');
-    session.generateReply({
-      instructions:
-        'You are Athena. Greet the mortal dramatically as the goddess of wisdom. Tell them which difficulty they have chosen and that 10 questions await. Then ask Question 1 immediately.',
+    session.on('close', (ev: any) => {
+      console.log(`SESSION CLOSED. reason=${ev.reason}`, ev.error ? `error=${ev.error}` : '');
     });
+
+    session.on('agent_state_changed', (ev: any) => {
+      console.log(`Agent state: ${ev.oldState} → ${ev.newState}`);
+    });
+
+    try {
+      console.log('Starting session...');
+      await session.start({
+        agent: createQuizAgent(difficulty),
+        room: ctx.room,
+      });
+
+      console.log('Session started. Connecting...');
+      await ctx.connect();
+      console.log(`Connected. Remote participants: ${ctx.room.remoteParticipants.size}`);
+
+      console.log('Generating greeting...');
+      const handle = session.generateReply({
+        instructions:
+          'You are Athena, goddess of wisdom. Greet the mortal dramatically and welcome them to this trial of ancient knowledge. Tell them their chosen difficulty and that 10 questions of wisdom await. Bid them press the "Begin the Trial" button when they are ready to start. Do NOT ask any questions yet — wait for them to signal they are ready.',
+        allowInterruptions: false,
+      });
+
+      handle
+        .waitForPlayout()
+        .then(() => console.log('Greeting playout complete.'))
+        .catch((err: any) => console.error('Greeting playout error:', err));
+
+    } catch (err) {
+      console.error('Agent entry fatal error:', err);
+    }
   },
 });
 
-cli.runApp(new WorkerOptions({ agent: fileURLToPath(import.meta.url), agentName: 'athena-quiz' }));
+// No agentName = auto-dispatch to any room (simpler and reliable)
+cli.runApp(new WorkerOptions({ agent: fileURLToPath(import.meta.url) }));
