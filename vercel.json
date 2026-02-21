@@ -2,6 +2,7 @@
   "buildCommand": "react-scripts build",
   "outputDirectory": "build",
   "rewrites": [
+    { "source": "/favicon.ico", "destination": "/favicon.svg" },
     { "source": "/((?!api/).*)", "destination": "/index.html" }
   ]
 }
