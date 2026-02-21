@@ -101,19 +101,42 @@ export default function App() {
   const [quizStarted, setQuizStarted] = useState(false);
   const [micActive, setMicActive]   = useState(false);
   const [micAvailable, setMicAvailable] = useState(true);
-  const roomRef  = useRef(null);
-  const inputRef = useRef(null);
+  const [score, setScore]           = useState({ current: 0, total: 0 });
+  const [gameOver, setGameOver]     = useState(false);
+  const [copied, setCopied]         = useState(false);
+  const [skipped, setSkipped]       = useState(false);
+  const roomRef        = useRef(null);
+  const inputRef       = useRef(null);
+  const audioElsRef    = useRef([]);
+  const skippedRef     = useRef(false);
+  const prevAgentState = useRef(null);
+  const fullTextRef    = useRef(''); // full LLM text received before TTS finishes
 
   // ── Auto-silence mic the moment agent starts thinking or speaking ───────────
   useEffect(() => {
-    if ((agentState === 'thinking' || agentState === 'speaking') && micActive) {
+    // Only auto-silence if the user hasn't explicitly pressed Skip (skip enables the mic button)
+    if ((agentState === 'thinking' || agentState === 'speaking') && micActive && !skippedRef.current) {
       const micPub = roomRef.current?.localParticipant.getTrackPublication(Track.Source.Microphone);
       if (micPub?.track?.mediaStreamTrack) {
         micPub.track.mediaStreamTrack.enabled = false;
       }
       setMicActive(false);
     }
+    // Clear buffered full text when Athena starts a new thinking turn (LLM begins).
+    // Must NOT clear on 'speaking' start — by then DataReceived has already set fullTextRef.
+    if (agentState === 'thinking' && prevAgentState.current !== 'thinking') {
+      fullTextRef.current = '';
+    }
+    // When Athena stops speaking (TTS done or interrupted), clear skip state and unmute audio
+    if (prevAgentState.current === 'speaking' && agentState !== 'speaking' && skippedRef.current) {
+      skippedRef.current = false;
+      setSkipped(false);
+      audioElsRef.current.forEach((el) => { el.muted = false; });
+    }
+    prevAgentState.current = agentState;
   }, [agentState, micActive]);
+
+  // Score and game-over are now sent via DataReceived (athena_score topic) — instant, no lag.
 
   // ── Connection ──────────────────────────────────────────────────────────────
   async function startQuiz() {
@@ -147,23 +170,50 @@ export default function App() {
           el.muted = false;
           document.body.appendChild(el);
           el.play().catch(() => {});
+          audioElsRef.current.push(el);
         }
       });
       room.on(RoomEvent.TrackUnsubscribed, (track) => {
-        track.detach().forEach((el) => el.remove());
+        track.detach().forEach((el) => {
+          audioElsRef.current = audioElsRef.current.filter((e) => e !== el);
+          el.remove();
+        });
       });
       room.on(RoomEvent.TranscriptionReceived, (segments, participant) => {
         if (!participant || participant.isLocal) return;
+        if (skippedRef.current) return; // full text already shown — don't overwrite
         const text = segments.map((s) => s.text).join(' ').trim();
         if (text) setTranscript(text);
       });
+      room.on(RoomEvent.DataReceived, (data, _participant, _kind, topic) => {
+        if (topic === 'athena_score') {
+          // Score arrives instantly when the tool runs — no TTS lag
+          const { current, total, isGameOver } = JSON.parse(new TextDecoder().decode(data));
+          setScore({ current, total });
+          if (isGameOver) setGameOver(true);
+          return;
+        }
+        if (topic === 'athena_full') {
+          // Full LLM text published early (before TTS finishes) for Skip display
+          const text = new TextDecoder().decode(data).trim();
+          fullTextRef.current = text;
+          if (skippedRef.current) setTranscript(text);
+        }
+      });
+
       room.on(RoomEvent.Disconnected, () => {
+        audioElsRef.current = [];
+        skippedRef.current = false;
+        fullTextRef.current = '';
         setPhase('idle');
         setAgentState(null);
         setTranscript('');
         setQuizStarted(false);
         setMicActive(false);
         setMicAvailable(true);
+        setScore({ current: 0, total: 0 });
+        setGameOver(false);
+        setSkipped(false);
       });
 
       await room.connect(url, token);
@@ -193,6 +243,17 @@ export default function App() {
       setPhase('error');
       roomRef.current?.disconnect();
       roomRef.current = null;
+    }
+  }
+
+  // ── Skip: silence audio + show full text + enable mic so user can answer now ─
+  function skipSpeech() {
+    skippedRef.current = true;
+    setSkipped(true); // enables the "Press to Speak" button immediately
+    // Silence audio instantly (before server-side interruption propagates)
+    audioElsRef.current.forEach((el) => { el.muted = true; });
+    if (fullTextRef.current) {
+      setTranscript(fullTextRef.current);
     }
   }
 
@@ -250,12 +311,46 @@ export default function App() {
   async function endQuiz() {
     await roomRef.current?.disconnect();
     roomRef.current = null;
+    audioElsRef.current = [];
+    skippedRef.current = false;
+    fullTextRef.current = '';
     setPhase('idle');
     setAgentState(null);
     setTranscript('');
     setQuizStarted(false);
     setMicActive(false);
     setMicAvailable(true);
+    setScore({ current: 0, total: 0 });
+    setGameOver(false);
+    setCopied(false);
+    setSkipped(false);
+  }
+
+  // ── Share helpers ────────────────────────────────────────────────────────────
+  function shareText() {
+    return `I scored ${score.current}/10 on the Are You Even Greek? quiz! 🏛️ Think you can beat me?\nareyouevengreek.com`;
+  }
+
+  function shareWhatsApp() {
+    window.open(`https://wa.me/?text=${encodeURIComponent(shareText())}`, '_blank');
+  }
+
+  function shareTwitter() {
+    window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText())}`, '_blank');
+  }
+
+  async function shareNative() {
+    if (navigator.share) {
+      try {
+        await navigator.share({ text: shareText(), url: 'https://areyouevengreek.com' });
+      } catch (_) {}
+    }
+  }
+
+  async function copyScore() {
+    await navigator.clipboard.writeText(shareText());
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2500);
   }
 
   useEffect(() => {
@@ -328,12 +423,27 @@ export default function App() {
         {phase === 'active' && (
           <div className="panel">
 
-            {/* Transcript — always visible, shows what Athena is saying */}
+            {/* Scoreboard — visible once first question has been answered */}
+            {quizStarted && score.total > 0 && (
+              <div className="scoreboard">
+                <span className="score-label">SCORE</span>
+                <span className="score-value">{score.current} / {score.total}</span>
+              </div>
+            )}
+
+            {/* Transcript */}
             <div className="transcript-box">
               <p className="transcript-text">
                 {transcript || (isSpeaking ? '...' : 'Awaiting the goddess...')}
               </p>
             </div>
+
+            {/* Skip button — mutes audio only, never advances quiz state */}
+            {isSpeaking && (
+              <button className="btn-skip" onClick={skipSpeech}>
+                Skip ›
+              </button>
+            )}
 
             {/* ── INTRO phase: waiting for user to press Begin ── */}
             {!quizStarted && (
@@ -345,11 +455,7 @@ export default function App() {
                       ? '⚡ The goddess ponders...'
                       : 'Listen to Athena, then press Begin when ready'}
                 </p>
-                <button
-                  className="btn-primary"
-                  onClick={beginQuiz}
-                  disabled={agentBusy}
-                >
+                <button className="btn-primary" onClick={beginQuiz}>
                   ⚡ Begin the Trial ⚡
                 </button>
                 <button className="btn-secondary leave-intro" onClick={endQuiz}>
@@ -359,22 +465,24 @@ export default function App() {
             )}
 
             {/* ── QUIZ phase: push-to-talk + text input ── */}
-            {quizStarted && (
+            {quizStarted && !gameOver && (
               <div className="quiz-actions">
                 <button
                   className={`btn-speak ${micActive ? 'recording' : ''}`}
                   onClick={toggleMic}
-                  disabled={agentBusy || !micAvailable}
+                  disabled={(agentBusy && !skipped) || !micAvailable}
                 >
-                  {isSpeaking
-                    ? '🔊 Athena is speaking...'
-                    : isThinking
-                      ? '⚡ Athena ponders...'
-                      : !micAvailable
-                        ? '🎙 Mic blocked — use text below'
-                        : micActive
-                          ? '🔴 Recording — click to stop'
-                          : '🎙 Press to Speak'}
+                  {!micAvailable
+                    ? '🎙 Mic blocked — use text below'
+                    : micActive
+                      ? '🔴 Recording — click to stop'
+                      : skipped
+                        ? '🎙 Press to Speak'
+                        : isSpeaking
+                          ? '🔊 Athena is speaking...'
+                          : isThinking
+                            ? '⚡ Athena ponders...'
+                            : '🎙 Press to Speak'}
                 </button>
 
                 <div className="input-row">
@@ -398,6 +506,34 @@ export default function App() {
 
                 <button className="btn-secondary" onClick={endQuiz}>
                   Leave the Temple
+                </button>
+              </div>
+            )}
+
+            {/* ── GAME OVER: share panel ── */}
+            {gameOver && (
+              <div className="share-panel">
+                <p className="share-title">⚡ Trial Complete ⚡</p>
+                <p className="share-score-display">{score.current} / {score.total}</p>
+                <p className="share-subtitle">Share your result</p>
+                <div className="share-row">
+                  <button className="btn-share whatsapp" onClick={shareWhatsApp}>
+                    WhatsApp
+                  </button>
+                  <button className="btn-share twitter" onClick={shareTwitter}>
+                    X / Twitter
+                  </button>
+                  {typeof navigator.share === 'function' && (
+                    <button className="btn-share native" onClick={shareNative}>
+                      More
+                    </button>
+                  )}
+                  <button className="btn-share copy" onClick={copyScore}>
+                    {copied ? 'Copied!' : 'Copy'}
+                  </button>
+                </div>
+                <button className="btn-primary" style={{ marginTop: '1rem' }} onClick={endQuiz}>
+                  Play Again
                 </button>
               </div>
             )}

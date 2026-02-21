@@ -183,7 +183,10 @@ function getQuestionPool(difficulty: Difficulty) {
   }
 }
 
-export function createQuizAgent(difficulty: Difficulty = 'medium'): voice.Agent {
+export function createQuizAgent(
+  difficulty: Difficulty = 'medium',
+  onScore?: (current: number, total: number, isGameOver: boolean) => void,
+): voice.Agent {
   const questions = shuffleAndPick(getQuestionPool(difficulty), QUESTIONS_PER_GAME);
   const state = {
     score: 0,
@@ -194,25 +197,26 @@ export function createQuizAgent(difficulty: Difficulty = 'medium'): voice.Agent 
   const difficultyLabel = difficulty === 'easy' ? 'EASY' : difficulty === 'hard' ? 'HARD' : 'MEDIUM';
 
   return new voice.Agent({
-    allowInterruptions: false,
+    allowInterruptions: true,
     instructions: `You are Athena, goddess of wisdom, hosting a Greek mythology and history quiz on ${difficultyLabel} difficulty.
 
 The quiz has ${QUESTIONS_PER_GAME} questions. Here they are for this session:
 ${questions.map((q, i) => `  Q${i + 1}: "${q.question}" → Answer: "${q.answer}"`).join('\n')}
 
 Your flow:
-1. When you first speak, greet the mortal as Athena — regal, warm, theatrical. Announce ${QUESTIONS_PER_GAME} questions on ${difficultyLabel} difficulty await them. Tell them to press the "Begin the Trial" button when they are ready. Do NOT ask questions yet.
-2. When the user signals they are ready (says "ready", "begin", "start", "I'm ready", or similar), immediately ask Question 1.
+1. When you first speak, greet the mortal as Athena in 2-3 sentences — regal, theatrical. Tell them: "${QUESTIONS_PER_GAME} questions on ${difficultyLabel} difficulty await. Press the Begin the Trial button when you are ready." Do NOT mention speaking to begin — they MUST press the button. Do NOT ask questions yet.
+2. When the user signals they are ready (says "ready", "begin", "start", "I'm ready", or sends any text), immediately ask Question 1.
 3. After the player answers (by voice or text), call submit_answer with the question number and their exact answer verbatim.
 4. Based on the result:
-   - Correct: say something like "By the gods, correct!" then state their score.
+   - Correct: say something like "By the gods, correct!"
    - Wrong: say "Alas! The answer was [correct answer]."
-5. Ask the next question immediately. No delays.
-6. After all ${QUESTIONS_PER_GAME} questions, deliver a theatrical final verdict on their score out of ${QUESTIONS_PER_GAME}.
+   - Do NOT verbally state the score at any point during the quiz.
+5. Ask the next question immediately. No delays, no rambling.
+6. After all ${QUESTIONS_PER_GAME} questions, deliver a short theatrical verdict. ALWAYS include the exact phrase "Your Final Score: X out of 10" (with the actual numbers).
 
 Rules:
 - Speak as Athena: wise, regal, theatrical. Use "By Zeus!", "Indeed, mortal!", "Impressive!" occasionally.
-- Keep responses short and snappy between questions — do not ramble.
+- Keep responses short and snappy — do not ramble.
 - No markdown, bullet points, or asterisks in speech.
 - Never reveal an answer before the player guesses.
 - Accept both spoken and typed answers equally.
@@ -242,13 +246,16 @@ Rules:
             state.score++;
           }
           state.scoredQuestions.add(questionNumber);
+          const gameOver = state.scoredQuestions.size >= QUESTIONS_PER_GAME;
+          // Publish score instantly via side-channel — no text markers in speech
+          onScore?.(state.score, state.scoredQuestions.size, gameOver);
           return {
             correct: isCorrect,
             correctAnswer: q.answer,
             currentScore: state.score,
             totalQuestions: QUESTIONS_PER_GAME,
             questionsAnswered: state.scoredQuestions.size,
-            isGameOver: state.scoredQuestions.size >= QUESTIONS_PER_GAME,
+            isGameOver: gameOver,
             nextQuestionNumber: questionNumber < QUESTIONS_PER_GAME ? questionNumber + 1 : null,
           };
         },
