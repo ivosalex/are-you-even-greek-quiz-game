@@ -47,18 +47,11 @@ export default defineAgent({
     });
 
     // Log all errors so nothing is silently swallowed
-    session.on('error', (ev: any) => {
-      const src = ev.source?.constructor?.name ?? String(ev.source);
-      console.error(`SESSION ERROR [${src}]:`, ev.error);
-    });
-
-    session.on('close', (ev: any) => {
-      console.log(`SESSION CLOSED. reason=${ev.reason}`, ev.error ? `error=${ev.error}` : '');
-    });
-
-    session.on('agent_state_changed', (ev: any) => {
-      console.log(`Agent state: ${ev.oldState} → ${ev.newState}`);
-    });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const s = session as any;
+    s.on('error', (ev: any) => console.error('SESSION ERROR:', ev));
+    s.on('close', (ev: any) => console.log(`SESSION CLOSED. reason=${ev?.reason}`));
+    s.on('agent_state_changed', (ev: any) => console.log(`Agent state: ${ev?.oldState} → ${ev?.newState}`));
 
     try {
       console.log('Starting session...');
